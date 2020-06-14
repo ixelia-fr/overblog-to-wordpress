@@ -1,0 +1,10 @@
+{
+    "name": "michael/overblog-to-wordpress",
+    "authors": [
+        {
+            "name": "Michaël Perrin",
+            "email": "contact@michaelperrin.fr"
+        }
+    ],
+    "require": {}
+}
