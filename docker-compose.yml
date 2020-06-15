@@ -8,11 +8,9 @@ services:
       - database:mysql
     volumes:
       - wordpress_data:/var/www/html
-    restart: always
 
   database:
     image: mysql:5.7
-    restart: always
     volumes:
       - db_data:/var/lib/mysql
     environment:
@@ -23,7 +21,6 @@ services:
 
   webserver:
     image: nginx:1.14-alpine
-    restart: always
     links:
       - wordpress
     volumes:
