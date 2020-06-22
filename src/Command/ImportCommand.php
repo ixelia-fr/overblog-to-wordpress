@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -37,6 +38,8 @@ class ImportCommand extends Command
             ],
         );
 
+        $progressBar = new ProgressBar($output, count($root->posts->post));
+        $progressBar->start();
 
         // var_dump(count($root->posts));
         // die;
@@ -45,7 +48,7 @@ class ImportCommand extends Command
             $data = [
                 'title'   => $post->title->__toString(),
                 'content' => $post->content->__toString(),
-                'slug'    => $post->slug->__toString(),
+                'slug'    => $this->formatSlug($post->slug->__toString()),
                 'status'  => 'publish',
                 'date'    => $post->created_at->__toString(),
             ];
@@ -62,8 +65,19 @@ class ImportCommand extends Command
                 echo $e;
                 return Command::FAILURE;
             }
+
+            $progressBar->advance();
         }
 
+        $progressBar->finish();
+
         return Command::SUCCESS;
+    }
+
+    private function formatSlug(string $slug): string
+    {
+        $slug = preg_replace(':^\d{4}/\d{2}/:', '', $slug);
+
+        return $slug;
     }
 }
