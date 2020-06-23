@@ -26,8 +26,8 @@ class ImportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $fileContent = file_get_contents($input->getArgument('file'));
-        $root = new \SimpleXMLElement($fileContent);
+        $root = simplexml_load_file($input->getArgument('file'));
+
         $base64 = base64_encode(sprintf('%s:%s', $input->getArgument('username'), $input->getArgument('password')));
         $client = HttpClient::createForBaseUri(
             $input->getArgument('wordpress_base_uri') . '/wp-json/wp/v2/posts',
@@ -41,9 +41,6 @@ class ImportCommand extends Command
         $progressBar = new ProgressBar($output, count($root->posts->post));
         $progressBar->start();
 
-        // var_dump(count($root->posts));
-        // die;
-
         foreach ($root->posts->post as $post) {
             $data = [
                 'title'   => $post->title->__toString(),
@@ -54,13 +51,19 @@ class ImportCommand extends Command
             ];
 
             try {
-                $client->request(
+                $response = $client->request(
                     'POST',
                     'posts',
                     [
                         'json' => $data,
                     ]
                 );
+
+                $postData = json_decode($response->getContent(), true);
+
+                if ($post->comments->comment) {
+                    $this->importComments($client, $postData, $post->comments->comment);
+                }
             } catch (\Exception $e) {
                 echo $e;
                 return Command::FAILURE;
@@ -79,5 +82,35 @@ class ImportCommand extends Command
         $slug = preg_replace(':^\d{4}/\d{2}/:', '', $slug);
 
         return $slug;
+    }
+
+    private function importComments($client, array $postData, $comments)
+    {
+        foreach ($comments as $comment) {
+            $data = [
+                'author_name'  => $comment->author_name->__toString(),
+                'author_email' => $comment->author_email->__toString(),
+                'author_url'   => $comment->author_url->__toString(),
+                'content'      => $comment->content->__toString(),
+                'date'         => $comment->published_at->__toString(),
+                'status'       => 'approve',
+            ];
+
+            try {
+                $response = $client->request(
+                    'POST',
+                    'comments',
+                    [
+                        'query' => ['post' => $postData['id']],
+                        'json'  => $data,
+                    ]
+                );
+
+                $postData = json_decode($response->getContent(), true);
+            } catch (\Exception $e) {
+                echo $e;
+                return Command::FAILURE;
+            }
+        }
     }
 }
