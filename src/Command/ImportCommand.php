@@ -6,12 +6,17 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\HttpClient\Exception\ClientException;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\Multipart\FormDataPart;
 
 class ImportCommand extends Command
 {
     protected static $defaultName = 'wp:import-overblog';
+    // protected $dryRun = false;
 
     protected function configure()
     {
@@ -21,11 +26,13 @@ class ImportCommand extends Command
             ->addArgument('wordpress_base_uri', InputArgument::REQUIRED, 'WordPress base URI')
             ->addArgument('username', InputArgument::REQUIRED, 'Username')
             ->addArgument('password', InputArgument::REQUIRED, 'Password')
+            // ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dry-run')
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        // $this->dryRun = $input->getOption('dry-run');
         $root = simplexml_load_file($input->getArgument('file'));
 
         $base64 = base64_encode(sprintf('%s:%s', $input->getArgument('username'), $input->getArgument('password')));
@@ -49,6 +56,8 @@ class ImportCommand extends Command
                 'status'  => 'publish',
                 'date'    => $post->created_at->__toString(),
             ];
+
+            $this->importImages($client, $data);
 
             try {
                 $response = $client->request(
@@ -111,6 +120,71 @@ class ImportCommand extends Command
                 echo $e;
                 return Command::FAILURE;
             }
+        }
+    }
+
+    private function importImages($client, array $postData)
+    {
+        // Super simple way to get images, as we are not sure the HTML code is valid
+        preg_match_all(':<img [^>]*src="([^"]+)":', $postData['content'], $matches);
+        var_dump($matches);
+        die;
+
+        foreach ($matches[1] as $match) {
+            $data = [
+                "date" => "2015-11-26 10:00:00",
+                "date_gmt" => "2015-11-26 09:00:00",
+                "modified" => "2015-11-26 10:00:00",
+                "modified_gmt" => "2015-11-26 09:00:00",
+                "status" => "future",
+                "title" => "Titre media",
+                "description" => "description media",
+                "media_type" => "image",
+                // 'source_url' => $match,
+                'source_url' => 'http://www.randonavigo.fr/uploads/hike/2018/04/coignieres-montfort/pictures/IMG_9743.jpg',
+            ];
+
+            var_dump($data);
+            $img = file_get_contents('https://cdn.mgig.fr/2020/06/mg-3e1997fa-6fc0-4bfb-85ef_accroche.jpg');
+            // $imgResource = fopen('https://cdn.mgig.fr/2020/06/mg-3e1997fa-6fc0-4bfb-85ef_accroche.jpg', 'r');
+
+            try {
+                // $formFields = [
+                //     'title' => 'My title',
+                //     // 'file' => DataPart::fromPath('/path/to/uploaded/file'),
+                //     'file' => new DataPart($imgResource),
+                // ];
+                // $formData = new FormDataPart($formFields);
+
+                $response = $client->request('POST', 'media', [
+                    // 'headers' => $formData->getPreparedHeaders()->toArray(),
+                    // 'body' => $formData->bodyToIterable(),
+
+                    'headers' => [
+                        'Content-Disposition' => 'attachment; filename=file.jpg',
+                        'Content-Type' => 'image/jpg',
+                    ],
+                    // 'json' => $data,
+                    'body' => $img,
+                ]);
+
+                $data = $response->getContent(false);
+                echo $data;
+                die('ooo');
+
+            } catch (ClientException $th) {
+                $res = $th->getResponse();
+                $content = $res->getContent(false);
+
+                var_dump($content);
+                die('ffff');
+            }
+
+            die('ggg');
+
+
+            // var_dump($response->getContent());
+            // die;
         }
     }
 }
