@@ -6,12 +6,17 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\HttpClient\Exception\ClientException;
 use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\Multipart\FormDataPart;
 
 class ImportCommand extends Command
 {
     protected static $defaultName = 'wp:import-overblog';
+    // protected $dryRun = false;
 
     protected function configure()
     {
@@ -21,11 +26,13 @@ class ImportCommand extends Command
             ->addArgument('wordpress_base_uri', InputArgument::REQUIRED, 'WordPress base URI')
             ->addArgument('username', InputArgument::REQUIRED, 'Username')
             ->addArgument('password', InputArgument::REQUIRED, 'Password')
+            // ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dry-run')
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        // $this->dryRun = $input->getOption('dry-run');
         $root = simplexml_load_file($input->getArgument('file'));
 
         $base64 = base64_encode(sprintf('%s:%s', $input->getArgument('username'), $input->getArgument('password')));
@@ -42,7 +49,7 @@ class ImportCommand extends Command
         $progressBar->start();
 
         foreach ($root->posts->post as $post) {
-            $data = [
+            $postData = [
                 'title'   => $post->title->__toString(),
                 'content' => $post->content->__toString(),
                 'slug'    => $this->formatSlug($post->slug->__toString()),
@@ -50,19 +57,21 @@ class ImportCommand extends Command
                 'date'    => $post->created_at->__toString(),
             ];
 
+            $postData = $this->importImages($client, $postData);
+
             try {
                 $response = $client->request(
                     'POST',
                     'posts',
                     [
-                        'json' => $data,
+                        'json' => $postData,
                     ]
                 );
 
-                $postData = json_decode($response->getContent(), true);
+                $wpPostData = $response->toArray();
 
                 if ($post->comments->comment) {
-                    $this->importComments($client, $postData, $post->comments->comment);
+                    $this->importComments($client, $wpPostData, $post->comments->comment);
                 }
             } catch (\Exception $e) {
                 echo $e;
@@ -84,7 +93,7 @@ class ImportCommand extends Command
         return $slug;
     }
 
-    private function importComments($client, array $postData, $comments)
+    private function importComments($client, array $wpPostData, $comments)
     {
         foreach ($comments as $comment) {
             $data = [
@@ -101,16 +110,77 @@ class ImportCommand extends Command
                     'POST',
                     'comments',
                     [
-                        'query' => ['post' => $postData['id']],
+                        'query' => ['post' => $wpPostData['id']],
                         'json'  => $data,
                     ]
                 );
-
-                $postData = json_decode($response->getContent(), true);
             } catch (\Exception $e) {
                 echo $e;
                 return Command::FAILURE;
             }
         }
+    }
+
+    private function importImages($client, array $postData): array
+    {
+        // Super simple way to get images, as we are not sure the HTML code is valid
+        preg_match_all(':<img [^>]*src="([^"]+)":', $postData['content'], $imgMatches);
+        // var_dump($imgMatches);
+        // die;
+        $imgHttpClient = HttpClient::create();
+
+        foreach ($imgMatches[1] as $imgUrl) {
+            $filename = $this->getImageNameFromImageUrl($imgUrl, $postData['slug']);
+            $response = $imgHttpClient->request('GET', $imgUrl);
+            $imgContent = $response->getContent();
+
+            try {
+                $response = $client->request('POST', 'media', [
+                    'headers' => [
+                        'Content-Disposition' => "attachment; filename=$filename",
+                        // 'Content-Type' => 'image/jpg',
+                    ],
+                    // 'json' => $data,
+                    'body' => $imgContent,
+                ]);
+
+                $data = $response->toArray();
+
+                $postData['content'] = str_replace($imgUrl, $data['guid']['raw'], $postData['content']);
+            } catch (ClientException $th) {
+                $res = $th->getResponse();
+                $content = $res->getContent(false);
+
+                var_dump($content);
+                die;
+            }
+        }
+
+        return $postData;
+    }
+
+    protected function getImageNameFromImageUrl(string $url, string $slug): string
+    {
+        $prefix = strstr($slug, '.', true);
+
+        if (!$prefix) {
+            $prefix = $slug;
+        }
+
+        $pathInfo = pathinfo(basename(parse_url($url, PHP_URL_PATH)));
+        $imgExtension = $pathInfo['extension'];
+
+        if (!$imgExtension) {
+            $imgExtension = 'jpg';
+        }
+
+        $filename = sprintf(
+            '%s-%s.%s',
+            $prefix,
+            substr(md5($url), 0, 10),
+            $imgExtension
+        );
+
+        return $filename;
     }
 }
