@@ -10,8 +10,6 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\HttpClient\Exception\ClientException;
 use Symfony\Component\HttpClient\HttpClient;
-use Symfony\Component\Mime\Part\DataPart;
-use Symfony\Component\Mime\Part\Multipart\FormDataPart;
 
 class ImportCommand extends Command
 {
@@ -26,13 +24,13 @@ class ImportCommand extends Command
             ->addArgument('wordpress_base_uri', InputArgument::REQUIRED, 'WordPress base URI')
             ->addArgument('username', InputArgument::REQUIRED, 'Username')
             ->addArgument('password', InputArgument::REQUIRED, 'Password')
-            // ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Dry-run')
+            ->addOption('ignore-images', null, InputOption::VALUE_NONE, 'Import images into WordPress', false)
         ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        // $this->dryRun = $input->getOption('dry-run');
+        $ignoreImages = $input->getOption('ignore-images');
         $root = simplexml_load_file($input->getArgument('file'));
 
         $base64 = base64_encode(sprintf('%s:%s', $input->getArgument('username'), $input->getArgument('password')));
@@ -57,7 +55,9 @@ class ImportCommand extends Command
                 'date'    => $post->created_at->__toString(),
             ];
 
-            $postData = $this->importImages($client, $postData);
+            if (!$ignoreImages) {
+                $postData = $this->importImages($client, $postData);
+            }
 
             try {
                 $response = $client->request(
