@@ -6,5 +6,5 @@ interface LoaderInterface
 {
     public function countPosts(): ?int;
     public function getPosts(): iterable;
-    public function getComments($post): iterable;
+    public function getComments($post): ?iterable;
 }

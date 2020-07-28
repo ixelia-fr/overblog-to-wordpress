@@ -2,11 +2,18 @@
 
 namespace App;
 
+use App\Event\PostImportedEvent;
 use App\Loader\LoaderInterface;
 use App\Writer\WriterInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 class Importer
 {
+    /**
+     * @var EventDispatcherInterface
+     */
+    protected $dispatcher;
+
     /**
      * @var LoaderInterface
      */
@@ -17,8 +24,12 @@ class Importer
      */
     protected $writer;
 
-    public function __construct(LoaderInterface $loader, WriterInterface $writer)
-    {
+    public function __construct(
+        EventDispatcherInterface $dispatcher,
+        LoaderInterface $loader,
+        WriterInterface $writer
+    ) {
+        $this->dispatcher = $dispatcher;
         $this->loader = $loader;
         $this->writer = $writer;
     }
@@ -41,7 +52,7 @@ class Importer
                 'date'    => $post->created_at->__toString(),
             ];
 
-            if (!empty($options['ignore-images'])) {
+            if (empty($options['ignore-images'])) {
                 $postData = $this->writer->importImages($postData);
             }
 
@@ -51,6 +62,9 @@ class Importer
             if ($comments) {
                 $this->importComments($wpPostData, $comments);
             }
+
+            $event = new PostImportedEvent();
+            $this->dispatcher->dispatch($event, PostImportedEvent::NAME);
         }
     }
 

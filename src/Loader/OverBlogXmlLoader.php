@@ -41,7 +41,7 @@ class OverBlogXmlLoader implements LoaderInterface
         return $this->root->posts->post;
     }
 
-    public function getComments($post): iterable
+    public function getComments($post): ?iterable
     {
         return $post->comments->comment;
     }

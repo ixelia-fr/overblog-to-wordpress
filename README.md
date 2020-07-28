@@ -11,6 +11,11 @@ Run:
 
 Access website on http://localhost:8100
 
+## Configure WordPress for the import
+
+* Install the *miniOrange WordPress REST API Authentication* plugin and activate Basic Authentication.
+* Allow users to add a comment with no username or email address.
+
 ## Run import
 
     ./app.php wp:import-overblog <file> <wordpress_base_uri> <username> <password>
