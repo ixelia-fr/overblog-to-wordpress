@@ -17,8 +17,25 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         ];
     }
 
-    public function savePost(array $postData): array
+    public function savePost($post): array
     {
+        $postData = $this->mapPostData($post);
+
+        add_filter(
+            'wp_insert_post_data',
+            function ($data) use ($post) {
+                $data['post_modified'] = $post->modified_at->__toString();
+
+                $modifiedAtDate = new \DateTime($post->modified_at);
+                $modifiedAtDate->setTimezone(new \DateTimeZone('GMT'));
+                $data['post_modified_gmt'] = $modifiedAtDate->format('c');
+
+                return $data;
+            },
+            99,
+            2
+        );
+
         $a = wp_insert_post($postData, true);
 
         return []; // TODO
