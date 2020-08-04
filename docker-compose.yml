@@ -20,6 +20,14 @@ services:
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_USER_PASSWORD}
 
+  php:
+    build: ./docker/php
+    working_dir: /app
+    depends_on:
+      - database
+    volumes:
+      - ./:/app
+
   webserver:
     image: nginx:1.14-alpine
     links:
