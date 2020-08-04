@@ -10,4 +10,13 @@ abstract class AbstractWriter
 
         return $slug;
     }
+
+    protected function getWordPressStatus($post)
+    {
+        if ((int) $post->status === 1) {
+            return WriterInterface::WP_POST_STATUS_DRAFT;
+        }
+
+        return WriterInterface::WP_POST_STATUS_PUBLISH;
+    }
 }

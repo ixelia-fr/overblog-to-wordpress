@@ -28,11 +28,12 @@ class WordPressApiWriter extends AbstractWriter implements WriterInterface
     public function mapPostData($post): array
     {
         return [
-            'title'   => $post->title->__toString(),
-            'content' => $post->content->__toString(),
-            'slug'    => $this->formatSlug($post->slug->__toString()),
-            'status'  => 'publish',
-            'date'    => $post->created_at->__toString(),
+            'title'    => $post->title->__toString(),
+            'content'  => $post->content->__toString(),
+            'slug'     => $this->formatSlug($post->slug->__toString()),
+            'status'   => $this->getWordPressStatus($post),
+            'date'     => $post->created_at->__toString(),
+            'modified' => $post->modified_at->__toString(), // NOT IMPLEMENTED
         ];
     }
 

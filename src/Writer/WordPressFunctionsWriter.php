@@ -12,7 +12,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'post_title'   => $post->title->__toString(),
             'post_content' => $post->content->__toString(),
             'post_slug'    => $this->formatSlug($post->slug->__toString()),
-            'post_status'  => 'publish',
+            'post_status'  => $this->getWordPressStatus($post),
             'post_date'    => $post->created_at->__toString(),
         ];
     }
