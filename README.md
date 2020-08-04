@@ -18,7 +18,13 @@ Access website on http://localhost:8100
 
 ## Run import
 
-    ./app.php wp:import-overblog <file> <wordpress_base_uri> <username> <password>
+With PHP WordPress functions:
+
+    docker-compose run --rm php ./app.php wp:import-overblog data/export3-fix.xml
+
+With API:
+
+    ./app.php wp:import-overblog-with-api <file> <wordpress_base_uri> <username> <password>
 
 Options:
 

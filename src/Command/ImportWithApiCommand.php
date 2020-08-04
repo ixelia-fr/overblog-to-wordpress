@@ -5,7 +5,7 @@ namespace App\Command;
 use App\Event\PostImportedEvent;
 use App\Importer;
 use App\Loader\OverBlogXmlLoader;
-use App\Writer\WordPressFunctionsWriter;
+use App\Writer\WordPressApiWriter;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -15,9 +15,9 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
-class ImportCommand extends Command
+class ImportWithApiCommand extends Command
 {
-    protected static $defaultName = 'wp:import-overblog';
+    protected static $defaultName = 'wp:import-overblog-with-api';
 
     /**
      * @var ProgressBar
@@ -27,8 +27,11 @@ class ImportCommand extends Command
     protected function configure()
     {
         $this
-            ->setDescription('Imports XML OverBlog file to WordPress.')
+            ->setDescription('Imports XML OverBlog file to WordPress using the WordPress API.')
             ->addArgument('file', InputArgument::REQUIRED, 'XML file to import')
+            ->addArgument('wordpress_base_uri', InputArgument::REQUIRED, 'WordPress base URI')
+            ->addArgument('username', InputArgument::REQUIRED, 'Username')
+            ->addArgument('password', InputArgument::REQUIRED, 'Password')
             ->addOption('ignore-images', null, InputOption::VALUE_NONE, 'Flag to disable image import')
         ;
     }
@@ -36,7 +39,11 @@ class ImportCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $loader = new OverBlogXmlLoader($input->getArgument('file'));
-        $writer = new WordPressFunctionsWriter();
+        $writer = new WordPressApiWriter(
+            $input->getArgument('wordpress_base_uri'),
+            $input->getArgument('username'),
+            $input->getArgument('password'),
+        );
 
         $options = [
             'ignore-images' => $input->getOption('ignore-images'),

@@ -36,7 +36,7 @@ class WordPressApiWriter extends AbstractWriter implements WriterInterface
         ];
     }
 
-    public function savePost(array $postData): array
+    public function savePost($post): array
     {
         $response = $this->client->request(
             'POST',
@@ -45,6 +45,7 @@ class WordPressApiWriter extends AbstractWriter implements WriterInterface
                 'json' => $postData,
             ]
         );
+        $postData = $this->mapPostData($post);
 
         return $response->toArray();
     }

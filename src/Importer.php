@@ -44,13 +44,11 @@ class Importer
         $posts = $this->loader->getPosts();
 
         foreach ($posts as $post) {
-            $postData = $this->writer->mapPostData($post);
-
             if (empty($options['ignore-images'])) {
-                $postData = $this->writer->importImages($postData);
+                $post = $this->writer->importImages($post);
             }
 
-            $wpPostData = $this->writer->savePost($postData);
+            $wpPostData = $this->writer->savePost($post);
             $comments = $this->loader->getComments($post);
 
             if ($comments) {
