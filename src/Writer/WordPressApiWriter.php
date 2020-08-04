@@ -3,9 +3,9 @@
 namespace App\Writer;
 
 use Symfony\Component\HttpClient\HttpClient;
-use Symfony\Component\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class WordPressApiWriter implements WriterInterface
+class WordPressApiWriter extends AbstractWriter implements WriterInterface
 {
     /**
      * @var HttpClientInterface
@@ -23,6 +23,17 @@ class WordPressApiWriter implements WriterInterface
                 ],
             ],
         );
+    }
+
+    public function mapPostData($post): array
+    {
+        return [
+            'title'   => $post->title->__toString(),
+            'content' => $post->content->__toString(),
+            'slug'    => $this->formatSlug($post->slug->__toString()),
+            'status'  => 'publish',
+            'date'    => $post->created_at->__toString(),
+        ];
     }
 
     public function savePost(array $postData): array

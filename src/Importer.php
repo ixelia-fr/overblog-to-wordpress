@@ -44,13 +44,7 @@ class Importer
         $posts = $this->loader->getPosts();
 
         foreach ($posts as $post) {
-            $postData = [
-                'title'   => $post->title->__toString(),
-                'content' => $post->content->__toString(),
-                'slug'    => $this->formatSlug($post->slug->__toString()),
-                'status'  => 'publish',
-                'date'    => $post->created_at->__toString(),
-            ];
+            $postData = $this->writer->mapPostData($post);
 
             if (empty($options['ignore-images'])) {
                 $postData = $this->writer->importImages($postData);
@@ -82,12 +76,5 @@ class Importer
 
             $this->writer->saveComment($wpPostData, $data);
         }
-    }
-
-    private function formatSlug(string $slug): string
-    {
-        $slug = preg_replace(':^\d{4}/\d{2}/:', '', $slug);
-
-        return $slug;
     }
 }
