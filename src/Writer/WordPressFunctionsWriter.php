@@ -19,14 +19,14 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         ];
     }
 
-    public function mapComment($post, $comment): array
+    public function mapComment($post, $comment, $parentComment = null): array
     {
         $commentDate = $comment->published_at->__toString();
         $commentDateGmt = new \DateTime($commentDate);
         $commentDateGmt->setTimezone(new \DateTimeZone('GMT'));
 
-        return [
-            'comment_author'  => $comment->author_name->__toString(),
+        $commentData = [
+            'comment_author'       => $comment->author_name->__toString(),
             'comment_author_email' => $comment->author_email->__toString(),
             'comment_author_url'   => $comment->author_url->__toString(),
             'comment_content'      => $comment->content->__toString(),
@@ -35,6 +35,12 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'comment_approved'     => 1,
             'comment_post_ID'      => $post->id,
         ];
+
+        if ($parentComment) {
+            $commentData['comment_parent'] = $parentComment->id;
+        }
+
+        return $commentData;
     }
 
     public function savePost($post)
@@ -61,9 +67,9 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $post;
     }
 
-    public function saveComment($post, $comment)
+    public function saveComment($post, $comment, $parentComment = null)
     {
-        $commentData = $this->mapComment($post, $comment);
+        $commentData = $this->mapComment($post, $comment, $parentComment);
         $commentId = wp_insert_comment($commentData);
 
         if ($commentId === false) {

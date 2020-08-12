@@ -66,10 +66,14 @@ class Importer
         }
     }
 
-    private function importComments($post, $comments)
+    private function importComments($post, $comments, $parentComment = null)
     {
         foreach ($comments as $comment) {
-            $this->writer->saveComment($post, $comment);
+            $this->writer->saveComment($post, $comment, $parentComment);
+
+            if (!empty($comment->replies->comment)) {
+                $this->importComments($post, $comment->replies->comment, $comment);
+            }
         }
     }
 }
