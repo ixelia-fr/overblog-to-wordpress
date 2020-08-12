@@ -2,9 +2,14 @@
 
 namespace App\Writer;
 
+use App\Event\Images\EndImportEvent;
+use App\Event\Images\ImageImportedEvent;
+use App\Event\Images\StartImportEvent;
 use App\Exception\ImportException;
+use Symfony\Component\HttpClient\HttpClient;
 
 require_once('wordpress/wp-load.php');
+require_once('wordpress/wp-admin/includes/image.php');
 
 class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 {
@@ -81,34 +86,74 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $comment;
     }
 
-    public function importImages(array $postData): array
+    public function importImages($post)
     {
-        // // Super simple way to get images, as we are not sure the HTML code is valid
-        // preg_match_all(':<img [^>]*src="([^"]+)":', $postData['content'], $imgMatches);
-        // // var_dump($imgMatches);
-        // // die;
-        // $imgHttpClient = HttpClient::create();
+        // Super simple way to get images, as we are not sure the HTML code is valid
+        $postContent = $post->content->__toString();
 
-        // foreach ($imgMatches[1] as $imgUrl) {
-        //     $filename = $this->getImageNameFromImageUrl($imgUrl, $postData['slug']);
-        //     $response = $imgHttpClient->request('GET', $imgUrl);
-        //     $imgContent = $response->getContent();
+        preg_match_all(':<img [^>]*src="([^"]+)":', $postContent, $imgMatches);
 
-        //     $response = $this->client->request('POST', 'media', [
-        //         'headers' => [
-        //             'Content-Disposition' => "attachment; filename=$filename",
-        //             // 'Content-Type' => 'image/jpg',
-        //         ],
-        //         // 'json' => $data,
-        //         'body' => $imgContent,
-        //     ]);
+        $event = new StartImportEvent(count($imgMatches[1]));
+        $this->dispatcher->dispatch($event);
 
-        //     $data = $response->toArray();
+        foreach ($imgMatches[1] as $imgUrl) {
+            $filename = $this->getImageNameFromImageUrl($imgUrl, $post->slug->__toString());
+            $uploadedFilePath = $this->uploadFileToWordPress($imgUrl, $filename);
+            $fileType = wp_check_filetype(basename($filename), null);
 
-        //     $postData['content'] = str_replace($imgUrl, $data['guid']['raw'], $postData['content']);
-        // }
+            $attachment = [
+                'post_mime_type' => $fileType['type'],
+                'post_title'     => $filename,
+                'post_content'   => '',
+                'post_status'    => 'inherit'
+            ];
 
-        // return $postData;
+            $attachId = wp_insert_attachment($attachment, $uploadedFilePath);
+
+            $imagePost = get_post($attachId);
+            $fullSizePath = get_attached_file($imagePost->ID);
+            $attachData = wp_generate_attachment_metadata($attachId, $fullSizePath);
+            wp_update_attachment_metadata($attachId, $attachData);
+
+            $post->content = str_replace($imgUrl, wp_get_attachment_url($imagePost->ID), $post->content);
+
+            $this->dispatcher->dispatch(new ImageImportedEvent());
+        }
+
+        preg_match_all(':<img [^>]*src="([^"]+)":', $post->content, $imgMatches);
+
+        $this->dispatcher->dispatch(new EndImportEvent());
+
+        return $post;
+    }
+
+    protected function uploadFileToWordPress(string $url, string $filename): string
+    {
+        // Do not keep folder hierarchy
+        $filename = str_replace('/', '-', $filename);
+
+        $uploadDir = wp_upload_dir();
+        $uploadedFilePath = $uploadDir['path'] . '/' . $filename;
+
+        if (file_exists($uploadedFilePath)) {
+            return $uploadedFilePath;
+        }
+
+        $httpClient = HttpClient::create(['headers' => [
+            'User-Agent' => 'PHP console app',
+        ]]);
+
+        $response = $httpClient->request('GET', $url, [
+            // 'buffer' => false,
+        ]);
+
+        $targetFileHandler = fopen($uploadedFilePath, 'w');
+        foreach ($httpClient->stream($response) as $chunk) {
+            fwrite($targetFileHandler, $chunk->getContent());
+        }
+        fclose($targetFileHandler);
+
+        return $uploadedFilePath;
     }
 
     protected function getImageNameFromImageUrl(string $url, string $slug): string
@@ -126,6 +171,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             $imgExtension = 'jpg';
         }
 
+        // Generate unique name using the current file name
         $filename = sprintf(
             '%s-%s.%s',
             $prefix,

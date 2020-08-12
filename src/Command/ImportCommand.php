@@ -2,6 +2,9 @@
 
 namespace App\Command;
 
+use App\Event\Images\EndImportEvent;
+use App\Event\Images\ImageImportedEvent;
+use App\Event\Images\StartImportEvent;
 use App\Event\PostImportedEvent;
 use App\Importer;
 use App\Loader\OverBlogXmlLoader;
@@ -24,6 +27,11 @@ class ImportCommand extends Command
      */
     protected $progressBar;
 
+    /**
+     * @var ProgressBar
+     */
+    protected $imageProgressBar;
+
     protected function configure()
     {
         $this
@@ -36,15 +44,16 @@ class ImportCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $dispatcher = $this->getDispatcher($output);
         $loader = new OverBlogXmlLoader($input->getArgument('file'));
-        $writer = new WordPressFunctionsWriter();
+        $writer = new WordPressFunctionsWriter($dispatcher);
 
         $options = [
             'ignore-images' => $input->getOption('ignore-images'),
             'limit'         => $input->getOption('limit'),
         ];
 
-        $importer = new Importer($this->getDispatcher(), $loader, $writer);
+        $importer = new Importer($dispatcher, $loader, $writer);
         $countPosts = $loader->countPosts();
 
         if ($options['limit'] !== null) {
@@ -59,11 +68,25 @@ class ImportCommand extends Command
         return Command::SUCCESS;
     }
 
-    protected function getDispatcher(): EventDispatcherInterface
+    protected function getDispatcher(OutputInterface $output): EventDispatcherInterface
     {
         $dispatcher = new EventDispatcher();
-        $dispatcher->addListener(PostImportedEvent::NAME, function () {
+
+        $dispatcher->addListener(PostImportedEvent::class, function () {
             $this->progressBar->advance();
+        });
+
+        $dispatcher->addListener(StartImportEvent::class, function (StartImportEvent $event) use ($output) {
+            $this->imagesImportProgressBar = new ProgressBar($output, $event->getTotal());
+            $this->imagesImportProgressBar->start();
+        });
+
+        $dispatcher->addListener(ImageImportedEvent::class, function () {
+            $this->imagesImportProgressBar->advance();
+        });
+
+        $dispatcher->addListener(EndImportEvent::class, function () {
+            $this->imagesImportProgressBar->finish();
         });
 
         return $dispatcher;

@@ -2,8 +2,17 @@
 
 namespace App\Writer;
 
+use Psr\EventDispatcher\EventDispatcherInterface;
+
 abstract class AbstractWriter
 {
+    protected $dispatcher;
+
+    public function __construct(EventDispatcherInterface $dispatcher)
+    {
+        $this->dispatcher = $dispatcher;
+    }
+
     protected function formatSlug(string $slug): string
     {
         $slug = preg_replace(':^\d{4}/\d{2}/:', '', $slug);

@@ -9,5 +9,5 @@ interface WriterInterface
 
     public function savePost($post);
     public function saveComment($post, $comment, $parentComment = null);
-    public function importImages(array $post): array;
+    public function importImages($post);
 }
