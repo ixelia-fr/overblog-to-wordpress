@@ -30,6 +30,7 @@ class ImportCommand extends Command
             ->setDescription('Imports XML OverBlog file to WordPress.')
             ->addArgument('file', InputArgument::REQUIRED, 'XML file to import')
             ->addOption('ignore-images', null, InputOption::VALUE_NONE, 'Flag to disable image import')
+            ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Max number of posts to import')
         ;
     }
 
@@ -40,10 +41,15 @@ class ImportCommand extends Command
 
         $options = [
             'ignore-images' => $input->getOption('ignore-images'),
+            'limit'         => $input->getOption('limit'),
         ];
 
         $importer = new Importer($this->getDispatcher(), $loader, $writer);
         $countPosts = $loader->countPosts();
+
+        if ($options['limit'] !== null) {
+            $countPosts = min($countPosts, $options['limit']);
+        }
 
         $this->progressBar = new ProgressBar($output, $countPosts ?? 0);
         $this->progressBar->start();

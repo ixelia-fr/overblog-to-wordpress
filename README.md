@@ -29,6 +29,7 @@ With API:
 Options:
 
 * `--ignore-images`: do not import images
+* `--limit=123`: Max number of posts to import
 
 ## Find errors in XML file
 

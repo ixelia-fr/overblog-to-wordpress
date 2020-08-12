@@ -42,6 +42,7 @@ class Importer
     public function importPosts(array $options)
     {
         $posts = $this->loader->getPosts();
+        $nbImported = 0;
 
         foreach ($posts as $post) {
             if (empty($options['ignore-images'])) {
@@ -57,6 +58,11 @@ class Importer
 
             $event = new PostImportedEvent();
             $this->dispatcher->dispatch($event, PostImportedEvent::NAME);
+            $nbImported++;
+
+            if ($options['limit'] !== null && $nbImported >= $options['limit']) {
+                break;
+            }
         }
     }
 
