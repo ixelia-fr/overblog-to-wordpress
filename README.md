@@ -13,7 +13,6 @@ Access website on http://localhost:8100
 
 ## Configure WordPress for the import
 
-* Install the *miniOrange WordPress REST API Authentication* plugin and activate Basic Authentication.
 * Allow users to add a comment with no username or email address.
 
 ## Run import
@@ -21,10 +20,6 @@ Access website on http://localhost:8100
 With PHP WordPress functions:
 
     docker-compose run --rm php ./app.php wp:import-overblog data/export3-fix.xml
-
-With API:
-
-    ./app.php wp:import-overblog-with-api <file> <wordpress_base_uri> <username> <password>
 
 Options:
 
