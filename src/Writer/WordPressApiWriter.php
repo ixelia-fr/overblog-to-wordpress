@@ -25,7 +25,7 @@ class WordPressApiWriter extends AbstractWriter implements WriterInterface
         );
     }
 
-    public function mapPostData($post): array
+    public function mapPost($post): array
     {
         return [
             'title'    => $post->title->__toString(),
@@ -39,28 +39,65 @@ class WordPressApiWriter extends AbstractWriter implements WriterInterface
 
     public function savePost($post): array
     {
-        $response = $this->client->request(
-            'POST',
-            'posts',
-            [
-                'json' => $postData,
-            ]
-        );
-        $postData = $this->mapPostData($post);
+        $postData = $this->mapPost($post);
 
-        return $response->toArray();
+        try {
+            $response = $this->client->request(
+                'POST',
+                'posts',
+                [
+                    'json' => $postData,
+                ]
+            );
+
+            $response->getContent(true);
+        } catch (\Throwable $th) {
+            var_dump($postData);
+            $res = $th->getResponse();
+            $content = $res->getContent(false);
+
+            var_dump($content);
+            die;
+        }
+
+        $post->id = $response->toArray()['ID'];
+
+        return $post;
     }
 
-    public function saveComment(array $postData, array $commentData)
+    public function saveComment($post, $comment)
     {
-        $this->client->request(
-            'POST',
-            'comments',
-            [
-                'query' => ['post' => $postData['id']],
-                'json'  => $commentData,
-            ]
-        );
+        $commentData = $this->mapComment($post, $comment);
+
+        try {
+            $this->client->request(
+                'POST',
+                'comments',
+                [
+                    'query' => ['post' => $post->id],
+                    'json'  => $commentData,
+                ]
+            );
+        } catch (\Throwable $th) {
+            var_dump($post, $mappedCommentData);
+            $res = $th->getResponse();
+            $content = $res->getContent(false);
+
+            var_dump($content);
+            die;
+        }
+    }
+
+    public function mapComment($post, $comment): array
+    {
+        return [
+            'author_name'  => $comment->author_name->__toString(),
+            'author_email' => $comment->author_email->__toString(),
+            'author_url'   => $comment->author_url->__toString(),
+            'content'      => $comment->content->__toString(),
+            'date'         => $comment->published_at->__toString(),
+            'status'       => 'approve',
+        ];
     }
 
     public function importImages(array $postData): array

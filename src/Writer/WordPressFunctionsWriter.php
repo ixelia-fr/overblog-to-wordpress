@@ -2,11 +2,13 @@
 
 namespace App\Writer;
 
+use App\Exception\ImportException;
+
 require_once('wordpress/wp-load.php');
 
 class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 {
-    public function mapPostData($post): array
+    public function mapPost($post): array
     {
         return [
             'post_title'   => $post->title->__toString(),
@@ -17,9 +19,27 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         ];
     }
 
-    public function savePost($post): array
+    public function mapComment($post, $comment): array
     {
-        $postData = $this->mapPostData($post);
+        $commentDate = $comment->published_at->__toString();
+        $commentDateGmt = new \DateTime($commentDate);
+        $commentDateGmt->setTimezone(new \DateTimeZone('GMT'));
+
+        return [
+            'comment_author'  => $comment->author_name->__toString(),
+            'comment_author_email' => $comment->author_email->__toString(),
+            'comment_author_url'   => $comment->author_url->__toString(),
+            'comment_content'      => $comment->content->__toString(),
+            'comment_date'         => $commentDate,
+            'comment_date_gmt'     => $commentDateGmt->format('c'),
+            'comment_approved'     => 1,
+            'comment_post_ID'      => $post->id,
+        ];
+    }
+
+    public function savePost($post)
+    {
+        $postData = $this->mapPost($post);
 
         add_filter(
             'wp_insert_post_data',
@@ -36,14 +56,23 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             2
         );
 
-        $a = wp_insert_post($postData, true);
+        $post->id = wp_insert_post($postData, true);
 
-        return []; // TODO
+        return $post;
     }
 
-    public function saveComment(array $postData, array $commentData)
+    public function saveComment($post, $comment)
     {
+        $commentData = $this->mapComment($post, $comment);
+        $commentId = wp_insert_comment($commentData);
 
+        if ($commentId === false) {
+            throw new ImportException('Comment could not be saved');
+        }
+
+        $comment->id = $commentId;
+
+        return $comment;
     }
 
     public function importImages(array $postData): array

@@ -48,11 +48,11 @@ class Importer
                 $post = $this->writer->importImages($post);
             }
 
-            $wpPostData = $this->writer->savePost($post);
+            $this->writer->savePost($post);
             $comments = $this->loader->getComments($post);
 
             if ($comments) {
-                $this->importComments($wpPostData, $comments);
+                $this->importComments($post, $comments);
             }
 
             $event = new PostImportedEvent();
@@ -60,19 +60,10 @@ class Importer
         }
     }
 
-    private function importComments(array $wpPostData, $comments)
+    private function importComments($post, $comments)
     {
         foreach ($comments as $comment) {
-            $data = [
-                'author_name'  => $comment->author_name->__toString(),
-                'author_email' => $comment->author_email->__toString(),
-                'author_url'   => $comment->author_url->__toString(),
-                'content'      => $comment->content->__toString(),
-                'date'         => $comment->published_at->__toString(),
-                'status'       => 'approve',
-            ];
-
-            $this->writer->saveComment($wpPostData, $data);
+            $this->writer->saveComment($post, $comment);
         }
     }
 }
