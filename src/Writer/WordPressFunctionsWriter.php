@@ -156,28 +156,10 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $uploadedFilePath;
     }
 
-    protected function getImageNameFromImageUrl(string $url, string $slug): string
+    protected function getImageNameFromImageUrl(string $url): string
     {
-        $prefix = strstr($slug, '.', true);
-
-        if (!$prefix) {
-            $prefix = $slug;
-        }
-
-        $pathInfo = pathinfo(basename(parse_url($url, PHP_URL_PATH)));
-        $imgExtension = $pathInfo['extension'];
-
-        if (!$imgExtension) {
-            $imgExtension = 'jpg';
-        }
-
-        // Generate unique name using the current file name
-        $filename = sprintf(
-            '%s-%s.%s',
-            $prefix,
-            substr(md5($url), 0, 10),
-            $imgExtension
-        );
+        $filename = pathinfo(basename(parse_url($url, PHP_URL_PATH)), PATHINFO_BASENAME);
+        $filename = str_replace('ob_', 'wp_', $filename);
 
         return $filename;
     }
