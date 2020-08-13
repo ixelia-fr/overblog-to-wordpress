@@ -156,8 +156,14 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $uploadedFilePath;
     }
 
-    protected function getImageNameFromImageUrl(string $url): string
+    protected function getImageNameFromImageUrl(string $url, string $slug): string
     {
+        if (strpos($url, '?http') !== false) {
+            // Manage URLs like https://resize.over-blog.com/9999x9999-z.jpg?https://img.over-blog-kiwi.com/5/04/29/11/20200624/ob_73dba5_img-2989.jpg
+            $url = strstr($url, '?http');
+            $url = ltrim($url, '?');
+        }
+
         $filename = pathinfo(basename(parse_url($url, PHP_URL_PATH)), PATHINFO_BASENAME);
         $filename = str_replace('ob_', 'wp_', $filename);
 
