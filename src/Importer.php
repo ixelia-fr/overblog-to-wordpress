@@ -4,6 +4,9 @@ namespace App;
 
 use App\Event\PostImportedEvent;
 use App\Loader\LoaderInterface;
+use App\Transformer\EmptyParagraphCleanup;
+use App\Transformer\FontFamilyRemover;
+use App\Transformer\TransformerInterface;
 use App\Writer\WriterInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -24,6 +27,11 @@ class Importer
      */
     protected $writer;
 
+    /**
+     * @var TransformerInterface[]
+     */
+    protected $transformers;
+
     public function __construct(
         EventDispatcherInterface $dispatcher,
         LoaderInterface $loader,
@@ -32,6 +40,11 @@ class Importer
         $this->dispatcher = $dispatcher;
         $this->loader = $loader;
         $this->writer = $writer;
+
+        $this->transformers = [
+            new EmptyParagraphCleanup(),
+            new FontFamilyRemover(),
+        ];
     }
 
     public function import(array $options = [])
@@ -45,6 +58,8 @@ class Importer
         $nbImported = 0;
 
         foreach ($posts as $post) {
+            $this->applyTransformers($post);
+
             if (empty($options['ignore-images'])) {
                 $post = $this->writer->importImages($post);
             }
@@ -74,6 +89,13 @@ class Importer
             if (!empty($comment->replies->comment)) {
                 $this->importComments($post, $comment->replies->comment, $comment);
             }
+        }
+    }
+
+    private function applyTransformers($post)
+    {
+        foreach ($this->transformers as $transformer) {
+            $post->content = $transformer->transform($post->content);
         }
     }
 }
