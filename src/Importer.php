@@ -3,12 +3,16 @@
 namespace App;
 
 use App\Event\PostImportedEvent;
+use App\Exception\ImportException;
 use App\Loader\LoaderInterface;
 use App\Transformer\EmptyParagraphCleanup;
 use App\Transformer\FontFamilyRemover;
 use App\Transformer\TransformerInterface;
 use App\Writer\WriterInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+
+// See https://wordpress.org/support/topic/red_itemcreate-throws-error/
+include_once WP_PLUGIN_DIR . '/redirection/models/group.php';
 
 class Importer
 {
@@ -57,6 +61,8 @@ class Importer
         $posts = $this->loader->getPosts();
         $nbImported = 0;
 
+        $this->preImportActions();
+
         foreach ($posts as $post) {
             $this->applyTransformers($post);
 
@@ -97,5 +103,27 @@ class Importer
         foreach ($this->transformers as $transformer) {
             $post->content = $transformer->transform($post->content);
         }
+    }
+
+    protected function preImportActions()
+    {
+        if (!class_exists('Red_Item')) {
+            throw new ImportException('Redirection plugin is not installed');
+        }
+
+        // Redirect .html pages to non .html ones (eg. /test.html to /test)
+        $redirectData = [
+            'status'      => 'enabled',
+            'url'         => '^/(.+)\.html',
+            'action_code' => 301,
+            'action_data' => ['url' => '/$1'],
+            'action_type' => 'url',
+            'match_type'  => 'url',
+            'regex'       => true,
+            'group_id'    => 1,
+            'position'    => 1000,
+        ];
+
+        \Red_Item::create($redirectData);
     }
 }

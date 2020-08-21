@@ -18,7 +18,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return [
             'post_title'   => $post->title->__toString(),
             'post_content' => $post->content->__toString(),
-            'post_slug'    => $this->formatSlug($post->slug->__toString()),
+            'post_name'    => $this->formatSlug($post->slug->__toString()),
             'post_status'  => $this->getWordPressStatus($post),
             'post_date'    => $post->created_at->__toString(),
             'tags_input'   => explode(',', $post->tags),
@@ -52,6 +52,8 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
     public function savePost($post)
     {
         $postData = $this->mapPost($post);
+
+        $this->preSaveActions($post, $postData);
 
         add_filter(
             'wp_insert_post_data',
@@ -169,5 +171,39 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         $filename = str_replace('ob_', 'wp_', $filename);
 
         return $filename;
+    }
+
+    protected function preSaveActions($post, array $postData)
+    {
+        if (!class_exists('Red_Item')) {
+            throw new ImportException('Redirection plugin is not installed');
+        }
+
+        // if (preg_match('/^article-/', $post->slug)) {
+        if (!preg_match('|^\d{4}/\d{2}|', $post->slug)) {
+            // Slug does not start with the date, create a redirection
+            // to the new URL which has the date
+
+            $createdAt = new \DateTime($post->created_at);
+            $oldUrl = sprintf('/%s', $post->slug);
+            $newUrl = sprintf(
+                '/%s/%s',
+                $createdAt->format('Y/m'),
+                preg_replace('/^article-/', '', $postData['post_name'])
+            );
+
+            $redirectData = [
+                'status' => 'enabled',
+                'url' => $oldUrl,
+                'action_code' => 301,
+                'action_data' => ['url' => $newUrl],
+                'action_type' => 'url',
+                'match_type' => 'url',
+                'regex' => false,
+                'group_id' => 1,
+            ];
+
+            \Red_Item::create($redirectData);
+        }
     }
 }

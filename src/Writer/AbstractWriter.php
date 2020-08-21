@@ -17,6 +17,9 @@ abstract class AbstractWriter
     {
         $slug = preg_replace(':^\d{4}/\d{2}/:', '', $slug);
 
+        // Remove .html from slug
+        $slug = preg_replace('/\.html$/', '', $slug);
+
         return $slug;
     }
 
