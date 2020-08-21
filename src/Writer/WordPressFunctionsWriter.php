@@ -21,6 +21,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'post_slug'    => $this->formatSlug($post->slug->__toString()),
             'post_status'  => $this->getWordPressStatus($post),
             'post_date'    => $post->created_at->__toString(),
+            'tags_input'   => explode(',', $post->tags),
         ];
     }
 
