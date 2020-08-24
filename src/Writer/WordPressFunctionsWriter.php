@@ -22,6 +22,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'post_status'  => $this->getWordPressStatus($post),
             'post_date'    => $post->created_at,
             'tags_input'   => $post->tags,
+            'post_type'    => $post->type,
         ];
     }
 

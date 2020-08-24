@@ -36,12 +36,22 @@ class OverBlogXmlLoader implements LoaderInterface
         return count($this->getPosts());
     }
 
+    public function countPages(): ?int
+    {
+        return count($this->getPages());
+    }
+
     public function getPosts(): iterable
     {
         return $this->root->posts->post;
     }
 
-    public function mapToPostObject($post)
+    public function getPages(): iterable
+    {
+        return $this->root->pages->page;
+    }
+
+    public function mapToPostObject($post, $postType)
     {
         $postObject = new \stdClass();
 
@@ -53,6 +63,7 @@ class OverBlogXmlLoader implements LoaderInterface
         $postObject->created_at = $post->created_at->__toString();
         $postObject->tags = explode(',', $post->tags);
         $postObject->comments = $post->comments->comment;
+        $postObject->type = $postType;
 
         return $postObject;
     }

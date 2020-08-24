@@ -58,13 +58,22 @@ class Importer
 
     public function importPosts(array $options)
     {
-        $posts = $this->loader->getPosts();
+        $this->importEntries($this->loader->getPosts(), 'post', $options);
+    }
+
+    public function importPages(array $options)
+    {
+        $this->importEntries($this->loader->getPages(), 'page', $options);
+    }
+
+    protected function importEntries($posts, $postType, $options)
+    {
         $nbImported = 0;
 
         $this->preImportActions();
 
         foreach ($posts as $post) {
-            $post = $this->loader->mapToPostObject($post);
+            $post = $this->loader->mapToPostObject($post, $postType);
             $this->applyTransformers($post);
 
             if (empty($options['ignore-images'])) {

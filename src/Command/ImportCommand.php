@@ -7,8 +7,10 @@ use App\Event\Images\ImageImportedEvent;
 use App\Event\Images\StartImportEvent;
 use App\Event\PostImportedEvent;
 use App\Importer;
+use App\Loader\LoaderInterface;
 use App\Loader\OverBlogXmlLoader;
 use App\Writer\WordPressFunctionsWriter;
+use App\Writer\WriterInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\ProgressBar;
@@ -53,7 +55,20 @@ class ImportCommand extends Command
             'limit'         => $input->getOption('limit'),
         ];
 
-        $importer = new Importer($dispatcher, $loader, $writer);
+        $importer = new Importer($this->getDispatcher($output), $loader, $writer);
+        $this->importPosts($output, $loader, $importer, $options);
+        $this->importPages($output, $loader, $importer, $options);
+
+        return Command::SUCCESS;
+    }
+
+    protected function importPosts(
+        OutputInterface $output,
+        LoaderInterface $loader,
+        Importer $importer,
+        array $options = []
+    ) {
+        $output->writeln('Importing posts...');
         $countPosts = $loader->countPosts();
 
         if ($options['limit'] !== null) {
@@ -62,10 +77,27 @@ class ImportCommand extends Command
 
         $this->progressBar = new ProgressBar($output, $countPosts ?? 0);
         $this->progressBar->start();
-        $importer->import($options);
+        $importer->importPosts($options);
         $this->progressBar->finish();
+    }
 
-        return Command::SUCCESS;
+    protected function importPages(
+        OutputInterface $output,
+        LoaderInterface $loader,
+        Importer $importer,
+        array $options = []
+    ) {
+        $output->writeln('Importing pages...');
+        $countPages = $loader->countPages();
+
+        if ($options['limit'] !== null) {
+            $countPages = min($countPages, $options['limit']);
+        }
+
+        $this->progressBar = new ProgressBar($output, $countPages ?? 0);
+        $this->progressBar->start();
+        $importer->importPages($options);
+        $this->progressBar->finish();
     }
 
     protected function getDispatcher(OutputInterface $output): EventDispatcherInterface
