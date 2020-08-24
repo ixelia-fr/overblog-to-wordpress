@@ -64,6 +64,7 @@ class Importer
         $this->preImportActions();
 
         foreach ($posts as $post) {
+            $post = $this->loader->mapToPostObject($post);
             $this->applyTransformers($post);
 
             if (empty($options['ignore-images'])) {
@@ -71,10 +72,9 @@ class Importer
             }
 
             $this->writer->savePost($post);
-            $comments = $this->loader->getComments($post);
 
-            if ($comments) {
-                $this->importComments($post, $comments);
+            if ($post->comments) {
+                $this->importComments($post, $post->comments);
             }
 
             $event = new PostImportedEvent();

@@ -16,12 +16,12 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
     public function mapPost($post): array
     {
         return [
-            'post_title'   => $post->title->__toString(),
-            'post_content' => $post->content->__toString(),
-            'post_name'    => $this->formatSlug($post->slug->__toString()),
+            'post_title'   => $post->title,
+            'post_content' => $post->content,
+            'post_name'    => $this->formatSlug($post->slug),
             'post_status'  => $this->getWordPressStatus($post),
-            'post_date'    => $post->created_at->__toString(),
-            'tags_input'   => explode(',', $post->tags),
+            'post_date'    => $post->created_at,
+            'tags_input'   => $post->tags,
         ];
     }
 
@@ -58,7 +58,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         add_filter(
             'wp_insert_post_data',
             function ($data) use ($post) {
-                $data['post_modified'] = $post->modified_at->__toString();
+                $data['post_modified'] = $post->modified_at;
 
                 $modifiedAtDate = new \DateTime($post->modified_at);
                 $modifiedAtDate->setTimezone(new \DateTimeZone('GMT'));
@@ -71,6 +71,10 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         );
 
         $post->id = wp_insert_post($postData, true);
+
+        if (isset($post->data['firstImageId'])) {
+            set_post_thumbnail($post->id, $post->data['firstImageId']);
+        }
 
         return $post;
     }
@@ -92,15 +96,15 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
     public function importImages($post)
     {
         // Super simple way to get images, as we are not sure the HTML code is valid
-        $postContent = $post->content->__toString();
-
-        preg_match_all(':<img [^>]*src="([^"]+)":', $postContent, $imgMatches);
+        preg_match_all(':<img [^>]*src="([^"]+)":', $post->content, $imgMatches);
 
         $event = new StartImportEvent(count($imgMatches[1]));
         $this->dispatcher->dispatch($event);
 
+        $imageCount = 0;
+
         foreach ($imgMatches[1] as $imgUrl) {
-            $filename = $this->getImageNameFromImageUrl($imgUrl, $post->slug->__toString());
+            $filename = $this->getImageNameFromImageUrl($imgUrl, $post->slug);
             $uploadedFilePath = $this->uploadFileToWordPress($imgUrl, $filename);
             $fileType = wp_check_filetype(basename($filename), null);
 
@@ -120,7 +124,18 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
             $post->content = str_replace($imgUrl, wp_get_attachment_url($imagePost->ID), $post->content);
 
+            if ($imageCount === 0) {
+                // Keep first image in post data to set it as the post thumbnail later on
+                if (!isset($post->data)) {
+                    $post->data = [];
+                }
+
+                $post->data['firstImageId'] = $attachId;
+            }
+
             $this->dispatcher->dispatch(new ImageImportedEvent());
+
+            $imageCount++;
         }
 
         preg_match_all(':<img [^>]*src="([^"]+)":', $post->content, $imgMatches);

@@ -41,8 +41,19 @@ class OverBlogXmlLoader implements LoaderInterface
         return $this->root->posts->post;
     }
 
-    public function getComments($post): ?iterable
+    public function mapToPostObject($post)
     {
-        return $post->comments->comment;
+        $postObject = new \stdClass();
+
+        $postObject->title = $post->title->__toString();
+        $postObject->content = $post->content->__toString();
+        $postObject->slug = $post->slug->__toString();
+        $postObject->status = $post->status->__toString();
+        $postObject->modified_at = $post->modified_at->__toString();
+        $postObject->created_at = $post->created_at->__toString();
+        $postObject->tags = explode(',', $post->tags);
+        $postObject->comments = $post->comments->comment;
+
+        return $postObject;
     }
 }
