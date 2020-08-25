@@ -191,11 +191,15 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
     protected function preSaveActions($post, array $postData)
     {
+        if ($post->type === 'page') {
+            $this->addRedirectsForPage($post, $postData);
+            return;
+        }
+
         if (!class_exists('Red_Item')) {
             throw new ImportException('Redirection plugin is not installed');
         }
 
-        // if (preg_match('/^article-/', $post->slug)) {
         if (!preg_match('|^\d{4}/\d{2}|', $post->slug)) {
             // Slug does not start with the date, create a redirection
             // to the new URL which has the date
@@ -207,6 +211,30 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
                 $createdAt->format('Y/m'),
                 preg_replace('/^article-/', '', $postData['post_name'])
             );
+
+            $redirectData = [
+                'status' => 'enabled',
+                'url' => $oldUrl,
+                'action_code' => 301,
+                'action_data' => ['url' => $newUrl],
+                'action_type' => 'url',
+                'match_type' => 'url',
+                'regex' => false,
+                'group_id' => 1,
+            ];
+
+            \Red_Item::create($redirectData);
+        }
+    }
+
+    protected function addRedirectsForPage($post, array $postData)
+    {
+        if (preg_match('|^\d{4}/\d{2}|', $post->slug)) {
+            // Slug starts with the date, create a redirection
+            // to the new URL with no date
+
+            $oldUrl = sprintf('/%s', $post->slug);
+            $newUrl = preg_replace('|^\d{4}/\d{2}/|', '', $oldUrl);
 
             $redirectData = [
                 'status' => 'enabled',
