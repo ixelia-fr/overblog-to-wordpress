@@ -74,6 +74,12 @@ class Importer
 
         foreach ($posts as $post) {
             $post = $this->loader->mapToPostObject($post, $postType);
+
+            if (empty($post->slug)) {
+                // Do not import posts with no slug
+                continue;
+            }
+
             $this->applyTransformers($post);
 
             if (empty($options['ignore-images'])) {
