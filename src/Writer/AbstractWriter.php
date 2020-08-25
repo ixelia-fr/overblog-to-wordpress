@@ -13,16 +13,6 @@ abstract class AbstractWriter
         $this->dispatcher = $dispatcher;
     }
 
-    protected function formatSlug(string $slug): string
-    {
-        $slug = preg_replace(':^\d{4}/\d{2}/:', '', $slug);
-
-        // Remove .html from slug
-        $slug = preg_replace('/\.html$/', '', $slug);
-
-        return $slug;
-    }
-
     protected function getWordPressStatus($post)
     {
         if ((int) $post->status === 1) {

@@ -18,7 +18,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return [
             'post_title'   => $post->title,
             'post_content' => $post->content,
-            'post_name'    => $this->formatSlug($post->slug),
+            'post_name'    => $post->slug,
             'post_status'  => $this->getWordPressStatus($post),
             'post_date'    => $post->created_at,
             'tags_input'   => $post->tags,
@@ -52,9 +52,9 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
     public function savePost($post)
     {
-        $postData = $this->mapPost($post);
+        $this->preSaveActions($post);
 
-        $this->preSaveActions($post, $postData);
+        $postData = $this->mapPost($post);
 
         add_filter(
             'wp_insert_post_data',
@@ -189,65 +189,78 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $filename;
     }
 
-    protected function preSaveActions($post, array $postData)
+    protected function preSaveActions($post)
     {
+        $oldSlug = $post->slug;
+        $shouldRedirect = $this->improveSlug($post);
+
+        $newUrl = sprintf('/%s', $post->slug);
+
         if ($post->type === 'page') {
-            $this->addRedirectsForPage($post, $postData);
-            return;
+            // Redirect if old slug had a date or if any transformation has been made
+            if (preg_match('|^\d{4}/\d{2}|', $oldSlug)) {
+                // Slug had a date but pages should not have a date
+                $shouldRedirect = true;
+            }
+        } else {
+            if (!preg_match('|^\d{4}/\d{2}|', $oldSlug)) {
+                // Slug didn't have a date. We need to redirect to the page with a date
+                $createdAt = new \DateTime($post->created_at);
+                $newUrl = sprintf(
+                    '/%s/%s',
+                    $createdAt->format('Y/m'),
+                    $post->slug
+                );
+                $shouldRedirect = true;
+            }
         }
 
+        if ($shouldRedirect) {
+            $this->addRedirect($oldSlug, $newUrl);
+        }
+    }
+
+    protected function addRedirect(string $oldUrl, $newUrl)
+    {
         if (!class_exists('Red_Item')) {
             throw new ImportException('Redirection plugin is not installed');
         }
 
-        if (!preg_match('|^\d{4}/\d{2}|', $post->slug)) {
-            // Slug does not start with the date, create a redirection
-            // to the new URL which has the date
+        $redirectData = [
+            'status' => 'enabled',
+            'url' => $oldUrl,
+            'action_code' => 301,
+            'action_data' => ['url' => $newUrl],
+            'action_type' => 'url',
+            'match_type' => 'url',
+            'regex' => false,
+            'group_id' => 1,
+        ];
 
-            $createdAt = new \DateTime($post->created_at);
-            $oldUrl = sprintf('/%s', $post->slug);
-            $newUrl = sprintf(
-                '/%s/%s',
-                $createdAt->format('Y/m'),
-                preg_replace('/^article-/', '', $postData['post_name'])
-            );
-
-            $redirectData = [
-                'status' => 'enabled',
-                'url' => $oldUrl,
-                'action_code' => 301,
-                'action_data' => ['url' => $newUrl],
-                'action_type' => 'url',
-                'match_type' => 'url',
-                'regex' => false,
-                'group_id' => 1,
-            ];
-
-            \Red_Item::create($redirectData);
-        }
+        \Red_Item::create($redirectData);
     }
 
-    protected function addRedirectsForPage($post, array $postData)
+    protected function improveSlug($post)
     {
-        if (preg_match('|^\d{4}/\d{2}|', $post->slug)) {
-            // Slug starts with the date, create a redirection
-            // to the new URL with no date
+        $shouldRedirect = false;
+        $newSlug = $post->slug;
 
-            $oldUrl = sprintf('/%s', $post->slug);
-            $newUrl = preg_replace('|^\d{4}/\d{2}/|', '', $oldUrl);
+        // Remove date from slug
+        $newSlug = preg_replace('|^\d{4}/\d{2}/|', '', $newSlug);
 
-            $redirectData = [
-                'status' => 'enabled',
-                'url' => $oldUrl,
-                'action_code' => 301,
-                'action_data' => ['url' => $newUrl],
-                'action_type' => 'url',
-                'match_type' => 'url',
-                'regex' => false,
-                'group_id' => 1,
-            ];
+        // Remove .html from slug. No need for redirect because a general rule is added
+        // to redirect all .html URLs to non .html URLs
+        $newSlug = preg_replace('/\.html$/', '', $newSlug);
 
-            \Red_Item::create($redirectData);
+        if (preg_match('/^article-/', $newSlug)) {
+            // Use post slug instead of ugly article ID in the URL
+            // eg. "article-1234" will become "my-page-title"
+            $newSlug = sanitize_title($post->title);
+            $shouldRedirect = true;
         }
+
+        $post->slug = $newSlug;
+
+        return $shouldRedirect;
     }
 }
