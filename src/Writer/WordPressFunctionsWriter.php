@@ -108,6 +108,11 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             // Fix weird domain name used for images
             $imgUrl = str_replace('resize.over-blog-prod_internal.com', 'resize.over-blog.com', $imgUrl);
 
+            // Only import images from the OverBlog domain names
+            if (!preg_match('over-blog(-kiwi)\.com', $imgUrl)) {
+                continue;
+            }
+
             $filename = $this->getImageNameFromImageUrl($imgUrl, $post->slug);
             $uploadedFilePath = $this->uploadFileToWordPress($imgUrl, $filename);
             $fileType = wp_check_filetype(basename($filename), null);
