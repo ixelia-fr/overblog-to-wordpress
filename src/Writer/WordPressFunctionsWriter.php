@@ -105,6 +105,9 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         $imageCount = 0;
 
         foreach ($imgMatches[1] as $imgUrl) {
+            // Fix weird domain name used for images
+            $imgUrl = str_replace('resize.over-blog-prod_internal.com', 'resize.over-blog.com', $imgUrl);
+
             $filename = $this->getImageNameFromImageUrl($imgUrl, $post->slug);
             $uploadedFilePath = $this->uploadFileToWordPress($imgUrl, $filename);
             $fileType = wp_check_filetype(basename($filename), null);
