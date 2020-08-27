@@ -7,6 +7,7 @@ use App\Exception\ImportException;
 use App\Loader\LoaderInterface;
 use App\Transformer\EmptyParagraphCleanup;
 use App\Transformer\FontFamilyRemover;
+use App\Transformer\LinksToImagesRemover;
 use App\Transformer\TransformerInterface;
 use App\Writer\WriterInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -48,6 +49,7 @@ class Importer
         $this->transformers = [
             new EmptyParagraphCleanup(),
             new FontFamilyRemover(),
+            new LinksToImagesRemover(),
         ];
     }
 
