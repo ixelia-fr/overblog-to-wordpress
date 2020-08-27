@@ -80,6 +80,12 @@ class Importer
                 continue;
             }
 
+            if (!empty($options['slug']) && !preg_match(sprintf('|%s|', $options['slug']), $post->slug)) {
+                $this->dispatcher->dispatch(new PostImportedEvent());
+                $nbImported++;
+                continue;
+            }
+
             $this->applyTransformers($post);
 
             if (empty($options['ignore-images'])) {
@@ -92,8 +98,7 @@ class Importer
                 $this->importComments($post, $post->comments);
             }
 
-            $event = new PostImportedEvent();
-            $this->dispatcher->dispatch($event, PostImportedEvent::NAME);
+            $this->dispatcher->dispatch(new PostImportedEvent());
             $nbImported++;
 
             if ($options['limit'] !== null && $nbImported >= $options['limit']) {

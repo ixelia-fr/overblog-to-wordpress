@@ -41,6 +41,7 @@ class ImportCommand extends Command
             ->addArgument('file', InputArgument::REQUIRED, 'XML file to import')
             ->addOption('ignore-images', null, InputOption::VALUE_NONE, 'Flag to disable image import')
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Max number of posts to import')
+            ->addOption('slug', null, InputOption::VALUE_REQUIRED, 'Filter slug to import')
         ;
     }
 
@@ -53,6 +54,7 @@ class ImportCommand extends Command
         $options = [
             'ignore-images' => $input->getOption('ignore-images'),
             'limit'         => $input->getOption('limit'),
+            'slug'          => $input->getOption('slug'),
         ];
 
         $importer = new Importer($this->getDispatcher($output), $loader, $writer);

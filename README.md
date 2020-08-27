@@ -28,6 +28,7 @@ Options:
 
 * `--ignore-images`: do not import images
 * `--limit=123`: Max number of posts to import
+* `--slug=my_reg_ex`: Filter slugs to import by regex
 
 ### Find errors in provided XML file
 
