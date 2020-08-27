@@ -106,15 +106,15 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
         foreach ($imgMatches[1] as $imgUrl) {
             // Fix weird domain name used for images
-            $imgUrl = str_replace('resize.over-blog-prod_internal.com', 'resize.over-blog.com', $imgUrl);
+            $newImgUrl = str_replace('resize.over-blog-prod_internal.com', 'resize.over-blog.com', $imgUrl);
 
             // Only import images from the OverBlog domain names
-            if (!preg_match('/over-blog(-kiwi)\.com/', $imgUrl)) {
+            if (!preg_match('/over-blog(-kiwi)?\.com/', $newImgUrl)) {
                 continue;
             }
 
-            $filename = $this->getImageNameFromImageUrl($imgUrl, $post->slug);
-            $uploadedFilePath = $this->uploadFileToWordPress($imgUrl, $filename);
+            $filename = $this->getImageNameFromImageUrl($newImgUrl, $post->slug);
+            $uploadedFilePath = $this->uploadFileToWordPress($newImgUrl, $filename);
             $fileType = wp_check_filetype(basename($filename), null);
 
             $attachment = [
@@ -185,14 +185,13 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
     protected function getImageNameFromImageUrl(string $url, string $slug): string
     {
-        if (strpos($url, '?http') !== false) {
-            // Manage URLs like https://resize.over-blog.com/9999x9999-z.jpg?https://img.over-blog-kiwi.com/5/04/29/11/20200624/ob_73dba5_img-2989.jpg
-            $url = strstr($url, '?http');
-            $url = ltrim($url, '?');
-        }
+        // Manage URLs like https://resize.over-blog.com/9999x9999-z.jpg?https://img.over-blog-kiwi.com/5/04/29/11/20200624/ob_73dba5_img-2989.jpg
+        // or http://resize.over-blog.com/170x170.jpg?www.covigneron.com/wp-content/uploads/2019/05/C1-box-te%CC%81le%CC%81chargeable.jpg#width=820&height=600
+        $url = preg_replace('#^.+\?((http)|(www\.).+)$#', '$1', $url);
 
         $filename = pathinfo(basename(parse_url($url, PHP_URL_PATH)), PATHINFO_BASENAME);
         $filename = str_replace('ob_', 'wp_', $filename);
+        $filename = urldecode($filename);
 
         return $filename;
     }
