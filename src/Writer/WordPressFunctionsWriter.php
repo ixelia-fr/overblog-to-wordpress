@@ -109,7 +109,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             $imgUrl = str_replace('resize.over-blog-prod_internal.com', 'resize.over-blog.com', $imgUrl);
 
             // Only import images from the OverBlog domain names
-            if (!preg_match('over-blog(-kiwi)\.com', $imgUrl)) {
+            if (!preg_match('/over-blog(-kiwi)\.com/', $imgUrl)) {
                 continue;
             }
 
