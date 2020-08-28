@@ -8,6 +8,7 @@ class FontFamilyRemover implements TransformerInterface
     {
         $content = $this->removeFontFamily($content);
         $content = $this->removeFontSizes($content);
+        $content = $this->removeLineHeight($content);
         $content = $this->removeSomeColors($content);
         $content = $this->removeEmptyStyle($content);
 
@@ -22,6 +23,11 @@ class FontFamilyRemover implements TransformerInterface
     protected function removeFontSizes(string $content): string
     {
         return preg_replace('|font-size:[^";]*|', '', $content);
+    }
+
+    protected function removeLineHeight(string $content): string
+    {
+        return preg_replace('|line-height:[^";]*|', '', $content);
     }
 
     protected function removeSomeColors(string $content): string
