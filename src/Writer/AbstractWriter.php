@@ -11,6 +11,8 @@ abstract class AbstractWriter
     public function __construct(EventDispatcherInterface $dispatcher)
     {
         $this->dispatcher = $dispatcher;
+
+        $this->init();
     }
 
     protected function getWordPressStatus($post)
@@ -20,5 +22,9 @@ abstract class AbstractWriter
         }
 
         return WriterInterface::WP_POST_STATUS_PUBLISH;
+    }
+
+    protected function init()
+    {
     }
 }

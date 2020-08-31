@@ -14,6 +14,40 @@ require_once('wordpress/wp-admin/includes/image.php');
 
 class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 {
+    protected function init()
+    {
+        add_filter(
+            'wp_kses_allowed_html',
+            function ($allowed, $context) {
+                $allowed['form'] = [
+                    'action' => true,
+                    'method' => true,
+                    'target' => true,
+                ];
+
+                $allowed['input'] = [
+                    'alt' => true,
+                    'name' => true,
+                    'type' => true,
+                    'value' => true,
+                    'src' => true,
+                ];
+
+                $allowed['select'] = [
+                    'name' => true,
+                ];
+
+                $allowed['option'] = [
+                    'value' => true,
+                ];
+
+                return $allowed;
+            },
+            10,
+            2
+        );
+    }
+
     public function mapPost($post): array
     {
         return [
