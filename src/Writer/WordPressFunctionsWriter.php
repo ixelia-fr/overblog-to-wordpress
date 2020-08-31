@@ -19,6 +19,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         add_filter(
             'wp_kses_allowed_html',
             function ($allowed, $context) {
+                // Allow forms
                 $allowed['form'] = [
                     'action' => true,
                     'method' => true,
@@ -40,6 +41,9 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
                 $allowed['option'] = [
                     'value' => true,
                 ];
+
+                // Remove old tags
+                unset($allowed['font']);
 
                 return $allowed;
             },
