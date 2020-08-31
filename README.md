@@ -34,6 +34,10 @@ Options:
 
     xmllint --stream data/file.xml
 
+### Run tests
+
+    ./vendor/bin/phpunit
+
 ## Technical information
 
 ### Redirections

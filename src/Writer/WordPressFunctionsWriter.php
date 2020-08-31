@@ -107,6 +107,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         foreach ($imgMatches[1] as $imgUrl) {
             // Fix weird domain name used for images
             $newImgUrl = str_replace('resize.over-blog-prod_internal.com', 'resize.over-blog.com', $imgUrl);
+            $newImgUrl = str_replace('?idata.', '?http://idata.', $newImgUrl);
 
             // Only import images from the OverBlog domain names
             if (!preg_match('/over-blog(-kiwi)?\.com/', $newImgUrl)) {
@@ -115,6 +116,11 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
             $filename = $this->getImageNameFromImageUrl($newImgUrl, $post->slug);
             $uploadedFilePath = $this->uploadFileToWordPress($newImgUrl, $filename);
+
+            if ($uploadedFilePath === null) {
+                continue;
+            }
+
             $fileType = wp_check_filetype(basename($filename), null);
 
             $attachment = [
@@ -154,7 +160,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $post;
     }
 
-    protected function uploadFileToWordPress(string $url, string $filename): string
+    protected function uploadFileToWordPress(string $url, string $filename): ?string
     {
         // Do not keep folder hierarchy
         $filename = str_replace('/', '-', $filename);
@@ -170,9 +176,14 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'User-Agent' => 'PHP console app',
         ]]);
 
-        $response = $httpClient->request('GET', $url, [
-            // 'buffer' => false,
-        ]);
+        try {
+            $response = $httpClient->request('GET', $url, [
+                // 'buffer' => false,
+            ]);
+            $response->getHeaders();
+        } catch (\Throwable $th) {
+            return null;
+        }
 
         $targetFileHandler = fopen($uploadedFilePath, 'w');
         foreach ($httpClient->stream($response) as $chunk) {
@@ -187,7 +198,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
     {
         // Manage URLs like https://resize.over-blog.com/9999x9999-z.jpg?https://img.over-blog-kiwi.com/5/04/29/11/20200624/ob_73dba5_img-2989.jpg
         // or http://resize.over-blog.com/170x170.jpg?www.covigneron.com/wp-content/uploads/2019/05/C1-box-te%CC%81le%CC%81chargeable.jpg#width=820&height=600
-        $url = preg_replace('#^.+\?((http)|(www\.).+)$#', '$1', $url);
+        $url = preg_replace('#^.+\?(((http)|(www\.)).+)$#', '$1', $url);
 
         $filename = pathinfo(basename(parse_url($url, PHP_URL_PATH)), PATHINFO_BASENAME);
         $filename = str_replace('ob_', 'wp_', $filename);

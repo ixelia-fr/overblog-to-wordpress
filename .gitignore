@@ -2,3 +2,4 @@
 /data/
 /.env
 /wordpress/
+.phpunit.result.cache
