@@ -6,6 +6,7 @@ use App\Event\Images\EndImportEvent;
 use App\Event\Images\ImageImportedEvent;
 use App\Event\Images\StartImportEvent;
 use App\Exception\ImportException;
+use App\Post;
 use Symfony\Component\HttpClient\HttpClient;
 
 require_once('wordpress/wp-load.php');
@@ -50,7 +51,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $commentData;
     }
 
-    public function savePost($post)
+    public function savePost(Post $post): Post
     {
         $this->preSaveActions($post);
 
@@ -80,7 +81,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $post;
     }
 
-    public function saveComment($post, $comment, $parentComment = null)
+    public function saveComment(Post $post, $comment, $parentComment = null)
     {
         $commentData = $this->mapComment($post, $comment, $parentComment);
         $commentId = wp_insert_comment($commentData);
@@ -94,7 +95,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $comment;
     }
 
-    public function importImages($post)
+    public function importImages(Post $post): Post
     {
         // Super simple way to get images, as we are not sure the HTML code is valid
         preg_match_all(':<img [^>]*src="([^"]+)":', $post->content, $imgMatches);
@@ -114,28 +115,11 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
                 continue;
             }
 
-            $filename = $this->getImageNameFromImageUrl($newImgUrl, $post->slug);
-            $uploadedFilePath = $this->uploadFileToWordPress($newImgUrl, $filename);
+            $imagePost = $this->createWordPressAttachment($newImgUrl);
 
-            if ($uploadedFilePath === null) {
+            if (!$imagePost) {
                 continue;
             }
-
-            $fileType = wp_check_filetype(basename($filename), null);
-
-            $attachment = [
-                'post_mime_type' => $fileType['type'],
-                'post_title'     => $filename,
-                'post_content'   => '',
-                'post_status'    => 'inherit'
-            ];
-
-            $attachId = wp_insert_attachment($attachment, $uploadedFilePath);
-
-            $imagePost = get_post($attachId);
-            $fullSizePath = get_attached_file($imagePost->ID);
-            $attachData = wp_generate_attachment_metadata($attachId, $fullSizePath);
-            wp_update_attachment_metadata($attachId, $attachData);
 
             $post->content = str_replace($imgUrl, wp_get_attachment_url($imagePost->ID), $post->content);
 
@@ -145,7 +129,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
                     $post->data = [];
                 }
 
-                $post->data['firstImageId'] = $attachId;
+                $post->data['firstImageId'] = $imagePost->ID;
             }
 
             $this->dispatcher->dispatch(new ImageImportedEvent());
@@ -153,11 +137,59 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             $imageCount++;
         }
 
-        preg_match_all(':<img [^>]*src="([^"]+)":', $post->content, $imgMatches);
+        $this->dispatcher->dispatch(new EndImportEvent());
+
+        return $post;
+    }
+
+    public function importUploadedFiles(Post $post): Post
+    {
+        preg_match_all('|<a [^>]*href="(https://data\.over-blog-kiwi\.com[^"]+\.pdf)"|', $post->content, $files);
+
+        $event = new StartImportEvent(count($files[1]));
+        $this->dispatcher->dispatch($event);
+
+        foreach ($files[1] as $fileUrl) {
+            $imagePost = $this->createWordPressAttachment($fileUrl);
+
+            if (!$imagePost) {
+                continue;
+            }
+
+            $post->content = str_replace($fileUrl, wp_get_attachment_url($imagePost->ID), $post->content);
+        }
 
         $this->dispatcher->dispatch(new EndImportEvent());
 
         return $post;
+    }
+
+    protected function createWordPressAttachment(string $fileUrl)
+    {
+        $filename = $this->getFileNameFromUrl($fileUrl);
+        $uploadedFilePath = $this->uploadFileToWordPress($fileUrl, $filename);
+
+        if ($uploadedFilePath === null) {
+            return null;
+        }
+
+        $fileType = wp_check_filetype(basename($filename), null);
+
+        $attachment = [
+            'post_mime_type' => $fileType['type'],
+            'post_title'     => $filename,
+            'post_content'   => '',
+            'post_status'    => 'inherit'
+        ];
+
+        $attachId = wp_insert_attachment($attachment, $uploadedFilePath);
+
+        $imagePost = get_post($attachId);
+        $fullSizePath = get_attached_file($imagePost->ID);
+        $attachData = wp_generate_attachment_metadata($attachId, $fullSizePath);
+        wp_update_attachment_metadata($attachId, $attachData);
+
+        return $imagePost;
     }
 
     protected function uploadFileToWordPress(string $url, string $filename): ?string
@@ -194,7 +226,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $uploadedFilePath;
     }
 
-    protected function getImageNameFromImageUrl(string $url, string $slug): string
+    protected function getFileNameFromUrl(string $url): string
     {
         // Manage URLs like https://resize.over-blog.com/9999x9999-z.jpg?https://img.over-blog-kiwi.com/5/04/29/11/20200624/ob_73dba5_img-2989.jpg
         // or http://resize.over-blog.com/170x170.jpg?www.covigneron.com/wp-content/uploads/2019/05/C1-box-te%CC%81le%CC%81chargeable.jpg#width=820&height=600
@@ -207,7 +239,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         return $filename;
     }
 
-    protected function preSaveActions($post)
+    protected function preSaveActions(Post $post)
     {
         $oldSlug = $post->slug;
         $shouldRedirect = $this->improveSlug($post);
@@ -258,7 +290,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         \Red_Item::create($redirectData);
     }
 
-    protected function improveSlug($post)
+    protected function improveSlug(Post $post): bool
     {
         $shouldRedirect = false;
         $newSlug = $post->slug;

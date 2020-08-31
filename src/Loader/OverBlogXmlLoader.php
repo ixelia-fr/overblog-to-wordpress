@@ -2,6 +2,8 @@
 
 namespace App\Loader;
 
+use App\Post;
+
 class OverBlogXmlLoader implements LoaderInterface
 {
     protected $filepath;
@@ -51,9 +53,9 @@ class OverBlogXmlLoader implements LoaderInterface
         return $this->root->pages->page;
     }
 
-    public function mapToPostObject($post, $postType)
+    public function mapToPostObject($post, $postType): Post
     {
-        $postObject = new \stdClass();
+        $postObject = new Post();
 
         $postObject->title = $post->title->__toString();
         $postObject->content = $post->content->__toString();

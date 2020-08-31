@@ -92,6 +92,7 @@ class Importer
 
             if (empty($options['ignore-images'])) {
                 $post = $this->writer->importImages($post);
+                $post = $this->writer->importUploadedFiles($post);
             }
 
             $this->writer->savePost($post);
