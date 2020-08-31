@@ -1,6 +1,21 @@
 OverBlog to WordPress
 =====================
 
+## Features
+
+* Import posts.
+* Import pages.
+* Import comments and replies to comments.
+* Create the Featured image in WordPress for each article.
+* Import images and updates posts to make use of them.
+* Import attachments and updates posts to make use of them.
+* Compatibility with old OverBlog articles.
+* URL cleanup (cool for SEO).
+* Automatic URL redirection from old URLs to new ones.
+* HTML code cleanup (for easier styling in a WordPress theme).
+    * Remove some inline styles.
+    * Remove links on single images.
+
 ## Installing and running
 
 ### Run a local instance of WordPress
