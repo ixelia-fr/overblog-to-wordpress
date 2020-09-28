@@ -35,6 +35,12 @@ Access website on http://localhost:8100
 
 ### Run import
 
+Install dependencies:
+
+    docker run --rm --interactive --tty \
+  --volume $PWD:/app \
+  composer install
+
 With PHP WordPress functions:
 
     docker-compose run --rm php ./app.php wp:import-overblog data/export3-fix.xml
