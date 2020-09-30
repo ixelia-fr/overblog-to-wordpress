@@ -54,7 +54,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
     public function mapPost($post): array
     {
-        return [
+        $postData = [
             'post_title'   => $post->title,
             'post_content' => $post->content,
             'post_name'    => $post->slug,
@@ -63,6 +63,14 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'tags_input'   => $post->tags,
             'post_type'    => $post->type,
         ];
+
+        $existingPostId = $this->getPostId($post);
+
+        if ($existingPostId !== null) {
+            $postData['ID'] = $existingPostId;
+        }
+
+        return $postData;
     }
 
     public function mapComment($post, $comment, $parentComment = null): array
@@ -350,5 +358,23 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         $post->slug = $newSlug;
 
         return $shouldRedirect;
+    }
+
+    protected function getPostId(Post $post): ?int
+    {
+        $args = [
+            'name'        => $post->slug,
+            'post_type'   => 'post',
+            'numberposts' => 1
+        ];
+
+        $posts = get_posts($args);
+
+
+        if ($posts) {
+            return $posts[0]->ID;
+        }
+
+        return null;
     }
 }
