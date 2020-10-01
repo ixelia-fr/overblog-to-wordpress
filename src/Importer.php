@@ -8,6 +8,7 @@ use App\Loader\LoaderInterface;
 use App\Transformer\EmptyParagraphCleanup;
 use App\Transformer\FontFamilyRemover;
 use App\Transformer\LinksToImagesRemover;
+use App\Transformer\SommelierVinsArticleCleanup;
 use App\Transformer\TransformerInterface;
 use App\Writer\WriterInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
@@ -50,6 +51,7 @@ class Importer
             new EmptyParagraphCleanup(),
             new FontFamilyRemover(),
             new LinksToImagesRemover(),
+            new SommelierVinsArticleCleanup(),
         ];
     }
 
