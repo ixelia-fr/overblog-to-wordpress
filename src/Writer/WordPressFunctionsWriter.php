@@ -365,7 +365,8 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         $args = [
             'name'        => $post->slug,
             'post_type'   => $post->type,
-            'numberposts' => 1
+            'numberposts' => 1,
+            'post_status' => 'any',
         ];
 
         $posts = get_posts($args);
