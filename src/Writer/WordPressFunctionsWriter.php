@@ -228,11 +228,17 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'post_status'    => 'inherit'
         ];
 
+        $existingAttachment = get_page_by_title($filename, OBJECT, 'attachment');
+
+        if ($existingAttachment) {
+            return $existingAttachment;
+        }
+
         $attachId = wp_insert_attachment($attachment, $uploadedFilePath);
 
         $imagePost = get_post($attachId);
         $fullSizePath = get_attached_file($imagePost->ID);
-        $attachData = wp_generate_attachment_metadata($attachId, $fullSizePath);
+        $attachData = wp_generate_attachment_metadata($imagePost->ID, $fullSizePath);
         wp_update_attachment_metadata($attachId, $attachData);
 
         return $imagePost;
