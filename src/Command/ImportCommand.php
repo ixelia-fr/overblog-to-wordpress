@@ -23,7 +23,7 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class ImportCommand extends Command
 {
-    protected static string $defaultName = 'wp:import-overblog';
+    protected static $defaultName = 'wp:import-overblog';
     protected ProgressBar $progressBar;
     protected ProgressBar $imageProgressBar;
     protected ConsoleSectionOutput $section1;
