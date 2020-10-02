@@ -214,13 +214,13 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
     protected function createWordPressAttachment(string $fileUrl)
     {
-		$filename = $this->getFileNameFromUrl($fileUrl);
+        $filename = $this->getFileNameFromUrl($fileUrl);
 
-		$existingAttachment = get_page_by_title($filename, OBJECT, 'attachment');
+        $existingAttachment = get_page_by_title($filename, OBJECT, 'attachment');
 
-		if ($existingAttachment) {
-			return $existingAttachment;
-		}
+        if ($existingAttachment) {
+            return $existingAttachment;
+        }
 
         $uploadedFilePath = $this->uploadFileToWordPress($fileUrl, $filename);
 

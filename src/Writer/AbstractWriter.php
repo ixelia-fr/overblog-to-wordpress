@@ -6,7 +6,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 
 abstract class AbstractWriter
 {
-    protected $dispatcher;
+    protected EventDispatcherInterface $dispatcher;
 
     public function __construct(EventDispatcherInterface $dispatcher)
     {
