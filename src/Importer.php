@@ -99,7 +99,7 @@ class Importer
 
             $this->writer->savePost($post);
 
-            if ($post->comments) {
+            if (empty($options['ignore-comments']) && $post->comments) {
                 $this->importComments($post, $post->comments);
             }
 
