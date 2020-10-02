@@ -373,7 +373,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'name'        => $post->slug,
             'post_type'   => $post->type,
             'numberposts' => 1,
-            'post_status' => 'any',
+            'post_status' => ['publish', 'pending', 'draft', 'auto-draft', 'future', 'private', 'inherit', 'trash'],
         ];
 
         $posts = get_posts($args);

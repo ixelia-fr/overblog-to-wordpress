@@ -61,6 +61,7 @@ class OverBlogXmlLoader implements LoaderInterface
         $postObject->content = $post->content->__toString();
         $postObject->slug = $post->slug->__toString();
         $postObject->status = $post->status->__toString();
+        $postObject->published_at = $post->published_at->__toString();
         $postObject->modified_at = $post->modified_at->__toString();
         $postObject->created_at = $post->created_at->__toString();
         $postObject->tags = explode(',', $post->tags);
