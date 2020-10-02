@@ -214,7 +214,14 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
 
     protected function createWordPressAttachment(string $fileUrl)
     {
-        $filename = $this->getFileNameFromUrl($fileUrl);
+		$filename = $this->getFileNameFromUrl($fileUrl);
+
+		$existingAttachment = get_page_by_title($filename, OBJECT, 'attachment');
+
+		if ($existingAttachment) {
+			return $existingAttachment;
+		}
+
         $uploadedFilePath = $this->uploadFileToWordPress($fileUrl, $filename);
 
         if ($uploadedFilePath === null) {
@@ -229,12 +236,6 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'post_content'   => '',
             'post_status'    => 'inherit'
         ];
-
-        $existingAttachment = get_page_by_title($filename, OBJECT, 'attachment');
-
-        if ($existingAttachment) {
-            return $existingAttachment;
-        }
 
         $attachId = wp_insert_attachment($attachment, $uploadedFilePath);
 
