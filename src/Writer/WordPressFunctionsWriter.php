@@ -59,9 +59,7 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'post_content' => $post->content,
             'post_name'    => $post->slug,
             'post_status'  => $this->getWordPressStatus($post),
-            // Use modified_at instead of created_at as OverBlog displays list
-            // of articles sorted by date of modification
-            'post_date'    => $post->modified_at,
+            'post_date'    => $post->published_at,
             'tags_input'   => $post->tags,
             'post_type'    => $post->type,
         ];
