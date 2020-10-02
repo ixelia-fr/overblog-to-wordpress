@@ -59,7 +59,9 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
             'post_content' => $post->content,
             'post_name'    => $post->slug,
             'post_status'  => $this->getWordPressStatus($post),
-            'post_date'    => $post->created_at,
+            // Use modified_at instead of created_at as OverBlog displays list
+            // of articles sorted by date of modification
+            'post_date'    => $post->modified_at,
             'tags_input'   => $post->tags,
             'post_type'    => $post->type,
         ];
@@ -106,11 +108,9 @@ class WordPressFunctionsWriter extends AbstractWriter implements WriterInterface
         add_filter(
             'wp_insert_post_data',
             function ($data) use ($post) {
-                // Use created_at instead of modified_at as OverBlog displays list
-                // of articles sorted by date of modification
-                $data['post_modified'] = $post->created_at;
+                $data['post_modified'] = $post->modified_at;
 
-                $modifiedAtDate = new \DateTime($post->created_at);
+                $modifiedAtDate = new \DateTime($post->modified_at);
                 $modifiedAtDate->setTimezone(new \DateTimeZone('GMT'));
                 $data['post_modified_gmt'] = $modifiedAtDate->format('c');
 
