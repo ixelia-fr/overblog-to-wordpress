@@ -11,6 +11,7 @@ use App\Transformer\InternalLinksRewriter;
 use App\Transformer\LinksToImagesRemover;
 use App\Transformer\SommelierVinsArticleCleanup;
 use App\Transformer\TransformerInterface;
+use App\Transformer\TypoCleanup;
 use App\Writer\WriterInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
@@ -53,6 +54,7 @@ class Importer
             new FontFamilyRemover(),
             new LinksToImagesRemover(),
             new SommelierVinsArticleCleanup(),
+            new TypoCleanup(),
             new InternalLinksRewriter($loader, new RedirectManager()),
         ];
     }
