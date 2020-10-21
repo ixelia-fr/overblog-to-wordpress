@@ -9,6 +9,7 @@ use App\Event\PostImportedEvent;
 use App\Importer;
 use App\Loader\LoaderInterface;
 use App\Loader\OverBlogXmlLoader;
+use App\RedirectManager;
 use App\Writer\WordPressFunctionsWriter;
 use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Console\Command\Command;
@@ -47,7 +48,7 @@ class ImportCommand extends Command
 
         $dispatcher = $this->getDispatcher($output);
         $loader = new OverBlogXmlLoader($input->getArgument('file'));
-        $writer = new WordPressFunctionsWriter($dispatcher);
+        $writer = new WordPressFunctionsWriter($dispatcher, new RedirectManager());
 
         $options = [
             'ignore-comments' => $input->getOption('ignore-comments'),

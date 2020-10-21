@@ -2,15 +2,18 @@
 
 namespace App\Writer;
 
+use App\RedirectManager;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 abstract class AbstractWriter
 {
     protected EventDispatcherInterface $dispatcher;
+    protected RedirectManager $redirectManager;
 
-    public function __construct(EventDispatcherInterface $dispatcher)
+    public function __construct(EventDispatcherInterface $dispatcher, RedirectManager $redirectManager)
     {
         $this->dispatcher = $dispatcher;
+        $this->redirectManager = $redirectManager;
 
         $this->init();
     }

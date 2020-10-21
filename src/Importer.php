@@ -7,6 +7,7 @@ use App\Exception\ImportException;
 use App\Loader\LoaderInterface;
 use App\Transformer\EmptyParagraphCleanup;
 use App\Transformer\FontFamilyRemover;
+use App\Transformer\InternalLinksRewriter;
 use App\Transformer\LinksToImagesRemover;
 use App\Transformer\SommelierVinsArticleCleanup;
 use App\Transformer\TransformerInterface;
@@ -52,6 +53,7 @@ class Importer
             new FontFamilyRemover(),
             new LinksToImagesRemover(),
             new SommelierVinsArticleCleanup(),
+            new InternalLinksRewriter($loader, new RedirectManager()),
         ];
     }
 
