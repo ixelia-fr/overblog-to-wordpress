@@ -150,7 +150,7 @@ class Importer
             'match_type'  => 'url',
             'regex'       => true,
             'group_id'    => 1,
-            'position'    => 1000,
+            'position'    => 20000,
         ];
 
         \Red_Item::create($redirectData);
